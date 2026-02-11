@@ -552,6 +552,131 @@ Console.WriteLine("[!] Telnet detected — high risk.");
 
 ---
 
+## Port Scanner — Complete Walkthrough
+
+A working TCP port scanner in 33 lines. Scans a target for open ports using `TcpClient`.
+
+### The Complete Code
+
+```csharp
+using System;
+using System.Net.Sockets;
+
+class Program
+{
+    static bool ScanPort(string target, int port)
+    {
+        try
+        {
+            TcpClient client = new TcpClient();
+            client.Connect(target, port);
+            client.Close();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    static void Main(string[] args)
+    {
+        string target = "192.168.1.64";
+        int[] ports = { 21, 22, 23, 80, 443, 3306, 8080 };
+        Console.WriteLine($"[*] Scanning {target} for open ports...\n");
+        for (int i = 0; i < ports.Length; i++)
+        {
+            bool isOpen = ScanPort(target, ports[i]);
+            if (isOpen)
+                Console.WriteLine($"[+] Port {ports[i],-6} is open.");
+            else
+                Console.WriteLine($"[-] Port {ports[i],-6} is closed.");
+        }
+    }
+}
+```
+
+### Every Line Explained
+
+**The toolboxes**
+
+| Line | Plain English |
+|------|-------------|
+| `using System;` | Load basic tools (Console, etc.) |
+| `using System.Net.Sockets;` | Load network tools (TcpClient) |
+| `class Program {` | Open the program container |
+
+**The ScanPort method — "knock on a door"**
+
+| Line | Plain English |
+|------|-------------|
+| `static bool ScanPort(string target, int port)` | A tool that takes an IP and port, gives back YES or NO |
+| `try {` | Try to do this. If it blows up, don't crash |
+| `TcpClient client = new TcpClient();` | Create a phone. Not calling anyone yet |
+| `client.Connect(target, port);` | Dial the number. If someone answers, keep going. If not, EXPLODE to catch |
+| `client.Close();` | Hang up the phone |
+| `return true;` | Report back: YES the door is open |
+| `catch {` | The call failed. Someone didn't answer. That's fine |
+| `return false;` | Report back: NO the door is closed |
+
+**What happens on the network:**
+
+```
+Open port:    Your PC → "You there?" → Target → "Yeah" → Connection made → true
+Closed port:  Your PC → "You there?" → Target → "Go away" → Exception → catch → false
+```
+
+**Main — where it all runs**
+
+| Line | Plain English |
+|------|-------------|
+| `static void Main(string[] args)` | Start here when program runs |
+| `string target = "192.168.1.64";` | Who are we scanning (the Pi) |
+| `int[] ports = { 21, 22, ... };` | Which doors to knock on |
+| `Console.WriteLine($"[*] Scanning...");` | Tell the user what we're doing |
+| `for (int i = 0; i < ports.Length; i++)` | Go through every port, one by one |
+| `bool isOpen = ScanPort(target, ports[i]);` | Knock on this door, store the answer |
+| `if (isOpen)` | Did someone answer? |
+| `Console.WriteLine($"[+] ... open");` | YES — print success |
+| `else` | Nobody answered |
+| `Console.WriteLine($"[-] ... closed");` | NO — print failure |
+
+**Common ports and what lives there:**
+
+| Port | Service | What It Is |
+|------|---------|-----------|
+| 21 | FTP | File transfer (passwords in plaintext) |
+| 22 | SSH | Secure remote terminal |
+| 23 | Telnet | Old remote terminal (everything in plaintext) |
+| 80 | HTTP | Websites (unencrypted) |
+| 443 | HTTPS | Websites (encrypted) |
+| 3306 | MySQL | Database |
+| 8080 | HTTP Proxy | Alternate web server |
+
+**The flow:**
+
+```
+Program starts → Main runs → sets target → lists ports → loop:
+  Port 21 → ScanPort → try Connect → FAIL → catch → false → "[-] closed"
+  Port 22 → ScanPort → try Connect → SUCCESS → true → "[+] open"
+  Port 23 → ScanPort → try Connect → FAIL → catch → false → "[-] closed"
+  ... (all 7 ports)
+→ loop ends → program exits
+```
+
+**Output prefixes (pentest convention):**
+
+| Prefix | Meaning |
+|--------|---------|
+| `[*]` | Info/status |
+| `[+]` | Success/found |
+| `[-]` | Failure/not found |
+| `[!]` | Warning/alert |
+
+This is `nmap -sT` (TCP connect scan) in 33 lines of C#.
+
+---
+
 ## The 5 Patterns
 
 | # | Pattern | Code | When |
